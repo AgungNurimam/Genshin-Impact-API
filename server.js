@@ -1,10 +1,5 @@
 const express = require('express');
 const mongoose = require('mongoose');
-// const bodyParser = require('body-parser');
-
-const multer  = require('multer')
-const upload = multer({ dest: 'uploads/' })
-
 const app = express();
 
 const character = require("./routes/api/character");
@@ -12,12 +7,31 @@ const character = require("./routes/api/character");
 // Lokasi config mongodbURI
 const db = require("./config/keys").mongoURI;
 
-const path = require('path');
-
+// Koneksi ke mongodb
 mongoose
     .connect(db)
     .then(() => console.log("mongoDB Connected"))
     .catch((err) => console.log(err));
+
+// dependency multer
+const multer = require("multer");
+// dependency path untuk menghasilkan jalur tujuan dan nama file secara dinamis
+const path = require("path");
+
+// menentukan lokasi pengunggahan
+const diskStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, path.join(__dirname, "public/uploads"));
+    },
+    filename: function (req, file, cb) {
+        cb(
+            null,
+            file.fieldname + "-" + Date.now() + path.extname(file.originalname)
+        );
+    },
+});
+
+
 
 // Tidak dipakai karena tidak support multipart/form-data
 // app.use(bodyParser.urlencoded({ extended: false }));
@@ -29,16 +43,23 @@ mongoose
 
 // Routes
 app.get('/', function (req, res) {
-    return res.status(200).json({'message' : 'It Works'});
+    return res.status(200).json({ 'message': 'It Works' });
 });
 
 app.post('/', function (req, res) {
     console.log('Isi Body :', req.body);
-    return res.status(200).json({'message' : req.body});
+    return res.status(200).json({ 'message': req.body });
 });
 
-app.post("/yourpath", upload.single('picture'), (req, res, next) => {
-
+app.post("/yourpath", multer({ storage: diskStorage }).single('picture'), (req, res, next) => {
+    const picture = req.file.path;
+    console.log(picture);
+    if(!picture) {
+        res.status(400).send({ 'message': 'tidak ada gambar'});
+    }
+    // menyimpan lokasi upload data picture pada index yang diinginkan
+    // contacts[req.query.index].photo = req.file.path;
+    res.send(picture);
     var postData = req.body;
     //then work with your data
 
